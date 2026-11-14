@@ -1,0 +1,26 @@
+name: Build et publication
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install customtkinter minecraft-launcher-lib requests pyinstaller
+      - name: Injecte la version et le dépôt
+        shell: bash
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          sed -i "s/^APP_VERSION = .*/APP_VERSION = \"$VER\"/" nova_launcher.py
+          sed -i "s#^GITHUB_REPO = .*#GITHUB_REPO = \"$GITHUB_REPOSITORY\"#" nova_launcher.py
+      - run: pyinstaller --onefile --windowed --name NovaLauncher --collect-all customtkinter nova_launcher.py
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/NovaLauncher.exe
+          generate_release_notes: true
